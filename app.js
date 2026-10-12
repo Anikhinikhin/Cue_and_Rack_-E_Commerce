@@ -18,7 +18,7 @@ const CATEGORIES = [
   { slug: "apparel", name: "Apparel" },
 ];
 
-const HOME_CATEGORY_SLUGS = ["cues", "gloves", "chalk", "cases", "tables"];
+const HOME_CATEGORY_SLUGS = ["cues", "gloves", "chalk", "cases", "balls", "tables", "apparel"];
 
 // Real product photos (supplied directly — one per product, in catalog order).
 const PRODUCT_IMAGES = {
@@ -145,6 +145,49 @@ const FEATURED_IDS = ["maple-cue", "glove-3pack", "hard-case", "chalk-12pack"];
 const ATTRIBUTE_FILTERS = ["Price Range", "Cue Weight", "Wrap Type", "Brand", "Availability"];
 const TABS = ["Description", "Specifications", "Shipping & Returns", "Reviews"];
 
+// Simple static content pages for the footer's Customer Care / About links.
+const INFO_PAGES = {
+  support: {
+    title: "Support Center",
+    body: [
+      "This is a demo storefront, so there's no live support team behind it yet — but here's how it would work.",
+      "Most questions people ask a store like this: Is my cart saved? Yes, it's kept in your browser so it's there if you come back. Is my payment information collected? No — this build never asks for or stores payment details. Will my order actually ship? No, the order summary at checkout is for planning purposes only.",
+      "In a live version of Cue & Rack, this page would include a searchable FAQ and a way to message a real support team.",
+    ],
+  },
+  warranty: {
+    title: "Warranty & Returns",
+    body: [
+      "Draft policy — not yet in effect, since no real orders are placed on this site.",
+      "Cues and equipment would be covered by a 1-year warranty against manufacturing defects. Unused items in original packaging would be returnable within 30 days of a real purchase.",
+      "Custom and limited-edition cues, along with any product listed as final sale, would not be eligible for return.",
+    ],
+  },
+  story: {
+    title: "Our Story",
+    body: [
+      "Cue & Rack started the way most good ideas at a pool table do — with an argument about equipment. Specifically, whether a $40 house cue could really play any worse than a $400 one.",
+      "It can. That argument turned into a small collection of cues, gloves, and table accessories picked by people who play often enough to have opinions about tip hardness and wrap material.",
+      "This site is still an early build — the catalog, photos, and policies here are a working draft, not a finished storefront.",
+    ],
+  },
+  craft: {
+    title: "Craftsmanship",
+    body: [
+      "Every cue in the catalog is described with the materials and construction details that actually matter at the table: shaft wood, joint type, wrap material, tip size.",
+      "The same goes for the rest of the lineup — cases built to actually protect what's inside them, chalk that doesn't cake up, racks that hold their shape.",
+      "As this store grows past its demo stage, this is where sourcing and manufacturing details for each product line would live.",
+    ],
+  },
+  contact: {
+    title: "Contact",
+    body: [
+      "This build doesn't have a live inbox yet, so messages sent from here wouldn't currently reach anyone.",
+      "Once connected, this is where a real contact form or support email would go.",
+    ],
+  },
+};
+
 // ---------------------------------------------------------------------
 // 2. HELPERS
 // ---------------------------------------------------------------------
@@ -231,10 +274,12 @@ function headerHTML() {
   const navItems = [
     { label: "Shop All", href: "#/shop" },
     { label: "Cues", href: "#/shop/cues" },
-    { label: "Gloves & Apparel", href: "#/shop/gloves" },
+    { label: "Gloves", href: "#/shop/gloves" },
     { label: "Chalk & Accessories", href: "#/shop/chalk" },
     { label: "Cases", href: "#/shop/cases" },
+    { label: "Balls & Racks", href: "#/shop/balls" },
     { label: "Tables", href: "#/shop/tables" },
+    { label: "Apparel", href: "#/shop/apparel" },
   ];
   const { route, a } = parseHash();
   return `
@@ -249,10 +294,16 @@ function headerHTML() {
           }).join("")}
         </nav>
         <div class="header-actions">
-          <button type="button">Search</button>
-          <button type="button">Acct</button>
+          <button type="button" onclick="Site.toggleSearch()">Search</button>
+          <a href="#/account" class="${route === "account" ? "active" : ""}">Acct</a>
           <a href="#/cart" id="cartCountBadge">Cart(${cartCount()})</a>
         </div>
+      </div>
+      <div class="search-bar ${route === "search" ? "open" : ""}" id="searchBar">
+        <form class="wrap search-form" onsubmit="return Site.submitSearch(event)">
+          <input type="text" id="searchInput" placeholder="Search cues, gloves, chalk, cases..." autocomplete="off" value="${route === "search" ? esc(decodeURIComponent(a || "")) : ""}">
+          <button type="submit" class="btn btn-gold btn-sm">Search</button>
+        </form>
       </div>
     </header>`;
 }
@@ -266,31 +317,33 @@ function footerHTML() {
         { label: "Gloves", href: "#/shop/gloves" },
         { label: "Chalk & Accessories", href: "#/shop/chalk" },
         { label: "Cases & Bags", href: "#/shop/cases" },
+        { label: "Balls & Racks", href: "#/shop/balls" },
         { label: "Tables & Furniture", href: "#/shop/tables" },
+        { label: "Apparel", href: "#/shop/apparel" },
       ],
     },
     {
       title: "Customer Care",
       links: [
-        { label: "Support Center", href: null },
-        { label: "Warranty & Returns", href: null },
+        { label: "Support Center", href: "#/page/support" },
+        { label: "Warranty & Returns", href: "#/page/warranty" },
         { label: "Your Cart", href: "#/cart" },
       ],
     },
     {
       title: "About",
       links: [
-        { label: "Our Story", href: null },
-        { label: "Craftsmanship", href: null },
-        { label: "Contact", href: null },
+        { label: "Our Story", href: "#/page/story" },
+        { label: "Craftsmanship", href: "#/page/craft" },
+        { label: "Contact", href: "#/page/contact" },
       ],
     },
     {
       title: "Follow Us",
       links: [
-        { label: "Instagram", href: null },
-        { label: "Facebook", href: null },
-        { label: "X (Twitter)", href: null },
+        { label: "Instagram", href: "https://instagram.com", external: true },
+        { label: "Facebook", href: "https://facebook.com", external: true },
+        { label: "X (Twitter)", href: "https://x.com", external: true },
       ],
     },
   ];
@@ -300,9 +353,9 @@ function footerHTML() {
         ${cols.map((c) => `
           <div class="footer-col">
             <h5>${esc(c.title)}</h5>
-            ${c.links.map((l) => l.href
-              ? `<a href="${l.href}">${esc(l.label)}</a>`
-              : `<button type="button">${esc(l.label)}</button>`
+            ${c.links.map((l) => l.external
+              ? `<a href="${l.href}" target="_blank" rel="noopener">${esc(l.label)}</a>`
+              : `<a href="${l.href}">${esc(l.label)}</a>`
             ).join("")}
           </div>`).join("")}
       </div>
@@ -431,6 +484,16 @@ function viewShop(categorySlug, sort) {
     </main>`;
 }
 
+function tabPanelsFor(product) {
+  const specsHTML = `<ul>${product.specs.map((s) => `<li>${esc(s)}</li>`).join("")}${product.variantLabel ? `<li>Available in multiple ${esc(product.variantLabel.toLowerCase())}s: ${product.variantOptions.map(esc).join(", ")}</li>` : ""}</ul>`;
+  return {
+    "Description": `<p>${esc(product.desc)}</p>`,
+    "Specifications": specsHTML,
+    "Shipping & Returns": `<p>This is a demo store — no items ship and no payment is collected. In a live store, shipping costs, delivery estimates, and the return window for this item would appear here.</p>`,
+    "Reviews": `<p>${stars(product.rating)} &nbsp; ${product.reviews} reviews, averaging ${product.rating} out of 5 stars.</p><div class="review-quote">&ldquo;${esc(product.quote)}&rdquo;<span class="by">&mdash; a Cue &amp; Rack customer</span></div>`,
+  };
+}
+
 function viewProduct(id, activeTab) {
   activeTab = activeTab || "Description";
   const product = findProduct(id);
@@ -448,14 +511,7 @@ function viewProduct(id, activeTab) {
 
   const ratingHTML = `<div class="pd-rating">${stars(product.rating)} <span class="count">(${product.reviews} reviews)</span></div>`;
 
-  const specsHTML = `<ul>${product.specs.map((s) => `<li>${esc(s)}</li>`).join("")}${product.variantLabel ? `<li>Available in multiple ${esc(product.variantLabel.toLowerCase())}s: ${product.variantOptions.map(esc).join(", ")}</li>` : ""}</ul>`;
-
-  const tabPanels = {
-    "Description": `<p>${esc(product.desc)}</p>`,
-    "Specifications": specsHTML,
-    "Shipping & Returns": `<p>This is a demo store — no items ship and no payment is collected. In a live store, shipping costs, delivery estimates, and the return window for this item would appear here.</p>`,
-    "Reviews": `<p>${stars(product.rating)} &nbsp; ${product.reviews} reviews, averaging ${product.rating} out of 5 stars.</p><div class="review-quote">&ldquo;${esc(product.quote)}&rdquo;<span class="by">&mdash; a Cue &amp; Rack customer</span></div>`,
-  };
+  const tabPanels = tabPanelsFor(product);
 
   const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
   const thumbUrl = PRODUCT_IMAGES[product.id];
@@ -493,7 +549,7 @@ function viewProduct(id, activeTab) {
       </div>
 
       <div class="tab-row">
-        ${TABS.map((t) => `<button type="button" class="tab-btn ${t === activeTab ? "active" : ""}" onclick="Site.setTab('${product.id}','${t}')">${esc(t)}${t === "Reviews" ? " (" + product.reviews + ")" : ""}</button>`).join("")}
+        ${TABS.map((t) => `<button type="button" class="tab-btn ${t === activeTab ? "active" : ""}" data-tab="${esc(t)}" onclick="Site.setTab('${product.id}','${t}')">${esc(t)}${t === "Reviews" ? " (" + product.reviews + ")" : ""}</button>`).join("")}
       </div>
       <div class="tab-panel">${tabPanels[activeTab]}</div>
 
@@ -502,6 +558,71 @@ function viewProduct(id, activeTab) {
         <div class="section-label">You Might Also Like</div>
         <div class="product-grid">${related.map(productCardHTML).join("")}</div>
       </section>` : ""}
+    </main>`;
+}
+
+function viewInfoPage(slug) {
+  const page = INFO_PAGES[slug];
+  if (!page) return viewNotFound("page");
+  return `
+    <main class="wrap view" style="max-width:720px;">
+      <div class="breadcrumb"><a href="#/">Home</a> / ${esc(page.title)}</div>
+      <h1 class="page-title">${esc(page.title)}</h1>
+      ${page.body.map((p) => `<p style="margin-bottom:16px;max-width:none;">${esc(p)}</p>`).join("")}
+      <a href="#/shop" class="btn btn-outline" style="margin-top:12px;">Continue Shopping</a>
+    </main>`;
+}
+
+function viewSearch(rawQuery) {
+  const query = decodeURIComponent(rawQuery || "").trim();
+  const q = query.toLowerCase();
+  const items = query
+    ? PRODUCTS.filter((p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.desc.toLowerCase().includes(q) ||
+        catName(p.category).toLowerCase().includes(q)
+      )
+    : [];
+  return `
+    <main class="wrap view">
+      <div class="breadcrumb"><a href="#/">Home</a> / Search</div>
+      <h1 class="page-title">${items.length} result${items.length === 1 ? "" : "s"} for &ldquo;${esc(query)}&rdquo;</h1>
+      <div class="product-grid cols-3">
+        ${items.map(productCardHTML).join("") || `<p style="color:var(--text-muted);">No products matched your search. Try a different term, or <a href="#/shop" style="text-decoration:underline;">browse everything</a>.</p>`}
+      </div>
+    </main>`;
+}
+
+const ACCOUNT_USERNAME = "channingtitus13";
+
+function viewAccount() {
+  const receipt = safeGet(RECEIPT_KEY, null);
+  return `
+    <main class="wrap view" style="max-width:720px;">
+      <div class="breadcrumb"><a href="#/">Home</a> / Account</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--felt);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:700;font-size:1.3rem;flex-shrink:0;">CT</div>
+        <div>
+          <div style="font-size:0.8rem;color:var(--text-muted);">Signed in as</div>
+          <h1 style="font-size:1.4rem;">${esc(ACCOUNT_USERNAME)}</h1>
+        </div>
+      </div>
+
+      <div class="filter-panel" style="margin-bottom:20px;">
+        <h4>Order History</h4>
+        ${receipt
+          ? `<p style="margin-bottom:12px;">Your most recent order: <strong>${esc(receipt.orderId)}</strong> &middot; ${esc(receipt.date)} &middot; ${money(receipt.total)}</p>
+             <a href="#/receipt" class="btn btn-outline btn-sm">View Order Summary</a>`
+          : `<p style="color:var(--text-muted);margin:0;">No orders yet. Items you check out will show up here.</p>`}
+      </div>
+
+      <div class="filter-panel" style="margin-bottom:20px;">
+        <h4>Profile</h4>
+        <div class="field"><label>Username</label><input type="text" value="${esc(ACCOUNT_USERNAME)}" disabled></div>
+        <div class="field" style="margin-bottom:0;"><label>Email</label><input type="text" value="${esc(ACCOUNT_USERNAME)}@example.com" disabled></div>
+      </div>
+
+      <div class="scope-note">This is a demo account for preview purposes — there's no real login system behind it yet, so nothing here is editable or saved to a server.</div>
     </main>`;
 }
 
@@ -704,6 +825,9 @@ function render() {
   else if (route === "cart") html = viewCart();
   else if (route === "checkout") html = viewCheckout();
   else if (route === "receipt") html = viewReceipt();
+  else if (route === "page") html = viewInfoPage(a);
+  else if (route === "search") html = viewSearch(a);
+  else if (route === "account") html = viewAccount();
   else html = viewNotFound("page");
 
   $app().innerHTML = headerHTML() + html + footerHTML();
@@ -715,6 +839,23 @@ function render() {
 // 10. PUBLIC API (used by inline handlers)
 // ---------------------------------------------------------------------
 const Site = {
+  toggleSearch() {
+    const bar = document.getElementById("searchBar");
+    if (!bar) return;
+    bar.classList.toggle("open");
+    if (bar.classList.contains("open")) {
+      const input = document.getElementById("searchInput");
+      if (input) setTimeout(() => input.focus(), 50);
+    }
+  },
+  submitSearch(e) {
+    e.preventDefault();
+    const q = (document.getElementById("searchInput") || {}).value || "";
+    const trimmed = q.trim();
+    if (!trimmed) return false;
+    location.hash = "#/search/" + encodeURIComponent(trimmed);
+    return false;
+  },
   setSort(value) {
     const { a } = parseHash();
     location.hash = (a ? `#/shop/${a}` : "#/shop") + `?sort=${value}`;
@@ -739,7 +880,19 @@ const Site = {
   },
   changeCartQty(index, value) { updateCartLineQty(index, parseInt(value, 10) || 1); },
   removeFromCart(index) { removeCartLine(index); },
-  setTab(productId, tab) { currentTab = tab; render(); location.hash = `#/product/${productId}`; },
+  setTab(productId, tab) {
+    // Update just the tab buttons + panel in place — no full re-render,
+    // so the page never jumps back to the top when switching tabs.
+    currentTab = tab;
+    const product = findProduct(productId);
+    if (!product) return;
+    const panels = tabPanelsFor(product);
+    const panelEl = document.querySelector(".tab-panel");
+    if (panelEl) panelEl.innerHTML = panels[tab];
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+    });
+  },
   placeOrder() {
     const lines = cartLines();
     if (!lines.length) return;
