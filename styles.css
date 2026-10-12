@@ -135,6 +135,14 @@ p { margin: 0; }
 .header-actions a:hover, .header-actions button:hover { background: #454545; }
 .promo-bar { background: var(--gold); color: var(--charcoal); text-align: center; font-size: 0.8rem; font-weight: 700; padding: 8px 16px; }
 
+.search-bar { max-height: 0; overflow: hidden; background: #262626; transition: max-height 0.2s ease; }
+.search-bar.open { max-height: 72px; }
+.search-form { display: flex; gap: 10px; align-items: center; padding-block: 12px; }
+.search-form input {
+  flex: 1; padding: 0.6em 1em; border: 1px solid var(--charcoal-box-border); border-radius: 3px;
+  background: #ffffff; color: var(--text-dark); font-size: 0.9rem;
+}
+
 @media (max-width: 900px) { .main-nav { display: none; } }
 
 /* ---------------------------------------------------------------------
@@ -155,7 +163,7 @@ p { margin: 0; }
 /* ---------------------------------------------------------------------
    CATEGORY TILES
    --------------------------------------------------------------------- */
-.category-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+.category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
 .category-tile { height: 100px; }
 @media (max-width: 900px) { .category-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 560px) { .category-grid { grid-template-columns: repeat(2, 1fr); } }
